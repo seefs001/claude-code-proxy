@@ -33,7 +33,9 @@ PROXY_API_KEY = os.environ.get("ANTHROPIC_API_KEY")  # Using same key for proxy
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
 PROXY_API_URL = "http://localhost:8082/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
-MODEL = "claude-3-sonnet-20240229"  # Change to your preferred model
+MODEL = "claude-3-sonnet-20240229"  # Default model for general tests
+# Specify a Vertex AI model to test (ensure this is in server.py's VERTEX_AI_MODELS list)
+VERTEX_MODEL = "vertex_ai/gemini-1.5-flash-preview-0514" # Example, use a valid model
 
 # Headers
 anthropic_headers = {
@@ -181,7 +183,17 @@ TEST_SCENARIOS = {
         ],
         "tools": [calculator_tool],
         "tool_choice": {"type": "auto"}
+    },
+
+    # Simple Vertex AI test
+    "vertex_simple": {
+        "model": VERTEX_MODEL, # Use the Vertex AI model ID
+        "max_tokens": 300,
+        "messages": [
+            {"role": "user", "content": "Hello Vertex AI! Can you tell me about Google Cloud in 2-3 sentences?"}
+        ]
     }
+    # Add more Vertex AI tests (e.g., with tools, streaming) if needed
 }
 
 # Required event types for Anthropic streaming responses
@@ -713,4 +725,4 @@ async def main():
     sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())
