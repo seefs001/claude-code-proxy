@@ -21,8 +21,8 @@ A proxy server that lets you use Anthropic clients with multiple LLM providers v
 
 1. **Clone this repository**:
    ```bash
-   git clone https://github.com/CogAgent/claude-code-openai.git
-   cd claude-code-openai
+   git clone https://github.com/CogAgent/claude-code-proxy.git
+   cd claude-code-proxy
    ```
 
 2. **Install uv** (if you haven't already):
