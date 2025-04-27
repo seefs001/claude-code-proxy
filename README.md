@@ -21,7 +21,7 @@ A proxy server that lets you use Anthropic clients with multiple LLM providers v
 
 1. **Clone this repository**:
    ```bash
-   git clone https://github.com/1rgs/claude-code-openai.git
+   git clone https://github.com/CogAgent/claude-code-openai.git
    cd claude-code-openai
    ```
 
@@ -113,6 +113,7 @@ The following Gemini models are supported with automatic `gemini/` prefix handli
 #### Vertex AI Models
 The following Vertex AI models are supported with automatic `vertex_ai/` prefix handling:
 - gemini-2.5-pro-preview-03-25
+- gemini-2.5-flash-preview-04-17
 - gemini-2.0-flash
 - gemini-1.5-flash-preview-0514
 - gemini-1.5-pro-preview-0514
@@ -120,8 +121,8 @@ The following Vertex AI models are supported with automatic `vertex_ai/` prefix 
 #### xAI Models
 The following xAI models are supported with automatic `xai/` prefix handling:
 - grok-3-mini-beta
+- grok-3-beta
 - grok-2-vision-latest
-- grok-3
 - grok-2
 - grok-1
 
