@@ -54,6 +54,10 @@ class MessageFilter(logging.Filter):
 root_logger = logging.getLogger()
 root_logger.addFilter(MessageFilter())
 
+# Enable dropping unsupported parameters for LiteLLM
+litellm.drop_params = True
+logger.info("✅ Enabled LiteLLM drop_params=True to ignore unsupported API parameters.")
+
 # Custom formatter for model mapping logs
 class ColorizedFormatter(logging.Formatter):
     """Custom formatter to highlight model mappings"""
@@ -226,8 +230,10 @@ class Tool(BaseModel):
     description: Optional[str] = None
     input_schema: Dict[str, Any]
 
-class ThinkingConfig(BaseModel):
-    enabled: bool
+# Updated ThinkingConfig to accept client format
+class ThinkingConfigClient(BaseModel):
+    budget_tokens: Optional[int] = None
+    type: Optional[str] = None
 
 class MessagesRequest(BaseModel):
     model: str
@@ -242,7 +248,7 @@ class MessagesRequest(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
     tools: Optional[List[Tool]] = None
     tool_choice: Optional[Dict[str, Any]] = None
-    thinking: Optional[ThinkingConfig] = None
+    thinking: Optional[ThinkingConfigClient] = None # Use the updated client-facing model
     original_model: Optional[str] = None  # Will store the original model name
 
     @field_validator('model')
@@ -360,7 +366,7 @@ class TokenCountRequest(BaseModel):
     messages: List[Message]
     system: Optional[Union[str, List[SystemContent]]] = None
     tools: Optional[List[Tool]] = None
-    thinking: Optional[ThinkingConfig] = None
+    thinking: Optional[ThinkingConfigClient] = None # Use the updated client-facing model
     tool_choice: Optional[Dict[str, Any]] = None
     original_model: Optional[str] = None  # Will store the original model name
 
@@ -664,6 +670,14 @@ def convert_anthropic_to_litellm(anthropic_request: MessagesRequest) -> Dict[str
 
     # Clean up messages for final request
     litellm_request["messages"] = [m for m in litellm_request["messages"] if m.get("content") or m.get("tool_calls")]
+
+    # Handle thinking field conversion
+    if anthropic_request.thinking and anthropic_request.thinking.type == "enabled":
+        # Add the format expected by the downstream API
+        litellm_request["thinking"] = {"enabled": True}
+        logger.debug("💡 Added 'thinking: {\"enabled\": True}' to LiteLLM request.")
+    # Else: if thinking is None or type != "enabled", don't add thinking field
+
     return litellm_request
 
 
@@ -922,11 +936,29 @@ async def create_message(
         import traceback
         error_traceback = traceback.format_exc()
         error_details = {"error": str(e), "type": type(e).__name__, "traceback": error_traceback}
+        # Safely add additional error attributes, converting non-serializable ones
         for attr in ['message', 'status_code', 'response', 'llm_provider', 'model']:
-            if hasattr(e, attr): error_details[attr] = getattr(e, attr)
-        logger.error(f"Error processing request: {json.dumps(error_details, indent=2)}")
+            if hasattr(e, attr):
+                value = getattr(e, attr)
+                # Convert potentially non-serializable types to strings for JSON logging
+                if not isinstance(value, (str, int, float, bool, list, dict, type(None))):
+                    try:
+                        value = str(value) # Attempt string conversion
+                    except:
+                        value = f"<{type(value).__name__} object (unserializable)>" # Fallback
+                error_details[attr] = value
+        try:
+            logger.error(f"Error processing request: {json.dumps(error_details, indent=2)}")
+        except Exception as log_e:
+            # Fallback logging if json.dumps still fails (shouldn't happen now, but safe)
+            logger.error(f"Error processing request (fallback log): {error_details}")
+            logger.error(f"Logging failed due to: {log_e}")
+
         status_code = getattr(e, 'status_code', 500)
-        detail_message = getattr(e, 'message', str(e))
+        # Ensure detail_message is a string
+        detail_message = getattr(e, 'message', None) # Get original message if possible
+        if detail_message is None:
+            detail_message = str(e) # Fallback to string representation of exception
         if isinstance(detail_message, bytes): detail_message = detail_message.decode('utf-8', errors='ignore')
         raise HTTPException(status_code=status_code, detail=str(detail_message))
 
