@@ -5,19 +5,14 @@ FROM python:3.10-slim-bullseye AS builder
 ENV UV_HOME=/opt/uv
 ENV PATH="$UV_HOME/bin:$PATH"
 
-# Install uv - the fast Python package installer
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Create a virtual environment
+# Install uv, create venv, and install dependencies in a single layer
+# This ensures the PATH is correctly set for subsequent commands
 WORKDIR /app
-RUN uv venv
-
-# Copy dependency definitions
 COPY pyproject.toml uv.lock* ./
-
-# Install dependencies into the virtual environment
-# Using --no-cache to keep the layer small
-RUN . .venv/bin/activate && uv pip sync --no-cache
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    uv venv && \
+    . .venv/bin/activate && \
+    uv pip sync --no-cache
 
 # Stage 2: Create the final, lean production image
 FROM python:3.10-slim-bullseye AS final
