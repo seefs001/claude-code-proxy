@@ -1,37 +1,49 @@
-# Stage 1: Builder
-FROM python:3.11-slim-bullseye AS builder
+# Stage 1: Build dependencies in a virtual environment
+FROM python:3.10-slim-bullseye AS builder
+
+# Set environment variables for uv
+ENV UV_HOME=/opt/uv
+ENV PATH="$UV_HOME/bin:$PATH"
+
+# Install uv - the fast Python package installer
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create a virtual environment
+WORKDIR /app
+RUN uv venv
+
+# Copy dependency definitions
+COPY pyproject.toml uv.lock* ./
+
+# Install dependencies into the virtual environment
+# Using --no-cache to keep the layer small
+RUN . .venv/bin/activate && uv pip sync --no-cache
+
+# Stage 2: Create the final, lean production image
+FROM python:3.10-slim-bullseye AS final
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PIP_NO_CACHE_DIR=off
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Stage 2: Final
-FROM python:3.11-slim-bullseye AS final
-
-# Set working directory
-WORKDIR /app
-
-# Create a non-root user
-RUN useradd -m appuser
+# Create a non-root user for security
+RUN useradd -m -s /bin/bash appuser
 USER appuser
 
-# Copy installed dependencies from builder stage
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+# Copy the virtual environment with dependencies from the builder stage
+COPY --chown=appuser:appuser --from=builder /app/.venv ./.venv
 
-# Copy application files
-COPY server.py .
-COPY .env.example .
-# COPY CLAUDE.md .
+# Copy application source code
+COPY --chown=appuser:appuser server.py .
+COPY --chown=appuser:appuser .env.example .
 
 # Expose the application port
 EXPOSE 8082
 
-# Set the command to run the application
-CMD ["python", "server.py"]
+# Set the command to run the application using uvicorn
+# Note: --host 0.0.0.0 is crucial for Docker networking
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8082"]
