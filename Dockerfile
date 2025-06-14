@@ -28,7 +28,7 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 # Copy application files
 COPY server.py .
 COPY .env.example .
-COPY CLAUDE.md .
+# COPY CLAUDE.md .
 
 # Expose the application port
 EXPOSE 8082
