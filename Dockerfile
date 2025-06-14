@@ -1,5 +1,5 @@
-# Stage 1: Builder
-FROM python:3.11-slim-bullseye AS builder
+# Use a single stage for simplicity
+FROM python:3.11-slim-bullseye
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -8,29 +8,21 @@ ENV PIP_NO_CACHE_DIR=off
 # Set working directory
 WORKDIR /app
 
-# Install uv
+# Install uv, the fast Python package installer
 RUN pip install uv
 
-# Copy project files and install dependencies with uv
+# Copy all necessary files
 COPY pyproject.toml uv.lock* ./
-RUN uv pip sync --no-cache --system pyproject.toml
-
-# Stage 2: Final
-FROM python:3.11-slim-bullseye AS final
-
-# Set working directory
-WORKDIR /app
-
-# Create a non-root user
-RUN useradd -m appuser
-USER appuser
-
-# Copy installed dependencies from builder stage
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-
-# Copy application files
 COPY server.py .
 COPY .env.example .
+
+# Install dependencies using uv
+# --system modifies the Python environment directly
+RUN uv pip install --no-cache -r pyproject.toml --system
+
+# Create a non-root user for security
+RUN useradd -m appuser
+USER appuser
 
 # Expose the application port
 EXPOSE 8082
