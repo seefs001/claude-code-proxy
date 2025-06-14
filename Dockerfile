@@ -13,7 +13,7 @@ RUN pip install uv
 
 # Copy project files and install dependencies with uv
 COPY pyproject.toml uv.lock* ./
-RUN uv pip sync --no-cache --system
+RUN uv pip sync --no-cache --system pyproject.toml
 
 # Stage 2: Final
 FROM python:3.11-slim-bullseye AS final
