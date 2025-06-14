@@ -27,5 +27,5 @@ USER appuser
 # Expose the application port
 EXPOSE 8082
 
-# Set the command to run the application
-CMD ["python", "server.py"]
+# Set the command to run the application using uvicorn
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8082"]
