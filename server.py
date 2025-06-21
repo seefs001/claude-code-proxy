@@ -1092,6 +1092,10 @@ async def create_message(request: MessagesRequest, raw_request: Request):
         if request.model.startswith("openai/"):
             litellm_request["api_key"] = OPENAI_API_KEY
             litellm_request["base_url"] = OPENAI_BASE_URL
+            # if model contain thinking
+            if "thinking" in request.model:
+                litellm_request["thinking"] = {"enabled": True}
+                litellm_request["model"] = request.model.replace("openai/", "deepseek/")
             logger.debug(f"Using OpenAI API key for model: {request.model}")
         elif request.model.startswith("gemini/"):  # Google AI Studio
             litellm_request["api_key"] = GEMINI_API_KEY
