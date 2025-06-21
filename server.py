@@ -160,6 +160,8 @@ OPENAI_MODELS = [
     "gpt-4o-mini-audio-preview",
     "gpt-4.1",  # Added default big model
     "gpt-4.1-mini",  # Added default small model
+    "gemini-2.5-pro-thinking",
+    "gemini-2.5-flash-thinking",
 ]
 
 # List of Gemini models (Note: These are often used via Google AI Studio, not Vertex directly)
@@ -1095,6 +1097,8 @@ async def create_message(request: MessagesRequest, raw_request: Request):
             # if model contain thinking
             if "thinking" in request.model:
                 litellm_request["thinking"] = {"enabled": True}
+                # reasoning_effort="low",
+                litellm_request["reasoning_effort"] = "high"
                 litellm_request["model"] = request.model.replace("openai/", "deepseek/")
             logger.debug(f"Using OpenAI API key for model: {request.model}")
         elif request.model.startswith("gemini/"):  # Google AI Studio
