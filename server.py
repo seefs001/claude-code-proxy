@@ -1100,6 +1100,7 @@ async def create_message(request: MessagesRequest, raw_request: Request):
                 # reasoning_effort="low",
                 litellm_request["reasoning_effort"] = "high"
                 request.model = request.model.replace("openai/", "deepseek/")
+                litellm_request["max_tokens"] = 65536
             logger.debug(f"Using OpenAI API key for model: {request.model}")
         elif request.model.startswith("gemini/"):  # Google AI Studio
             litellm_request["api_key"] = GEMINI_API_KEY
